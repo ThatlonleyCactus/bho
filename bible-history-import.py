@@ -22,7 +22,6 @@ for book in books:
 	else:
 		isOldTest = 'N'
 
-	#currentChapter = 0;
 	for childElem in book:
 		if (childElem.tag == "toc" and childElem.attrib["level"] == "2"):
 			currentBookName = childElem.text.strip();
