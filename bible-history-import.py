@@ -9,7 +9,7 @@ conn = pymysql.connect(host="jim.dardenhome.com", # your host, usually localhost
                      passwd="", # your password
                      db="bible_history") # name of the data base
 curs = conn.cursor()
-fp = codecs.open("WEB/eng-web_usfx.xml","r", "utf-8")
+fp = codecs.open("eng-web_usfx.xml","r", "utf-8")
 xml=fp.read()
 #rootElem = ET.parse(fp)
 rootElem = ET.fromstring(xml)
