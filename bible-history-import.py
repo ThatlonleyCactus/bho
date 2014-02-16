@@ -3,6 +3,15 @@ import xml.etree.ElementTree as ET
 import sys
 import codecs
 import unicodedata
+import re
+
+
+TAG_RE = re.compile(r'<[^>]+>')
+
+
+def stripTags(text):
+	return TAG_RE.sub('', text)
+
 
 
 # for a given book.chapter.verse or book.chapter
@@ -11,6 +20,37 @@ import unicodedata
 def getNumberFromReference(reference):
 	referenceNumber = reference[reference.rfind(".")+1:]
 	return referenceNumber
+
+
+
+def getVerses(paragrph):
+	verses = []
+
+	verseTagIndex = 1;
+	while (verseTagIndex > 0):
+		verseTagIndex = paragraph.find('<verse sID="', verseTagIndex)
+		if (verseTagIndex == -1):
+			break
+
+		referenceStartIndex = verseTagIndex + 12
+		referenceEndIndex = paragraph.find('"', referenceStartIndex)
+
+		reference = paragraph[referenceStartIndex:referenceEndIndex]
+		print ("Verse=" + getNumberFromReference(reference))
+		verseTextStartIndex = paragraph.find('/>', verseTagIndex) + 2
+
+		verseTextEndIndex = paragraph.find('<verse sID="', verseTextStartIndex)
+
+		if (verseTextEndIndex == -1):
+			verseText = paragraph[verseTextStartIndex:]
+		else: 
+			verseText = stripTags(paragraph[verseTextStartIndex:verseTextEndIndex])
+
+		print (verseText)
+
+		verseTagIndex += 1
+	return ""
+
 
 conn = pymysql.connect(host="jim.dardenhome.com", # your host, usually localhost
 					 port=3306,
