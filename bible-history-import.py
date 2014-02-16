@@ -1,5 +1,5 @@
-import pymysql
 import xml.etree.ElementTree as ET
+import pymysql
 import sys
 import codecs
 import unicodedata
