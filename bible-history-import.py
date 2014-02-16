@@ -3,6 +3,17 @@ import xml.etree.ElementTree as ET
 import sys
 import codecs
 import unicodedata
+
+
+def getChapterNumber(fullChapter):
+	chapter = fullChapter[fullChapter.find(".")+1:]	 
+	return chapter
+
+
+def getVerseNumber(fullVerse):
+	verse = fullVerse[fullVerse.rfind(".")+1:]
+	return verse
+
 conn = pymysql.connect(host="jim.dardenhome.com", # your host, usually localhost
 					 port=3306,
                      user="liam", # your username
