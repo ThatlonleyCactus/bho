@@ -5,14 +5,12 @@ import codecs
 import unicodedata
 
 
-def getChapterNumber(fullChapter):
-	chapter = fullChapter[fullChapter.find(".")+1:]	 
-	return chapter
-
-
-def getVerseNumber(fullVerse):
-	verse = fullVerse[fullVerse.rfind(".")+1:]
-	return verse
+# for a given book.chapter.verse or book.chapter
+# reference, return the final number (chapter or verse)
+# e.g. Gen.1.1 or Exo.2 
+def getNumberFromReference(reference):
+	referenceNumber = reference[reference.rfind(".")+1:]
+	return referenceNumber
 
 conn = pymysql.connect(host="jim.dardenhome.com", # your host, usually localhost
 					 port=3306,
