@@ -2,21 +2,10 @@ import xml.etree.ElementTree as ET;
 import pymysql;
 import sys;
 
-conn = pymysql.connect(host="jim.dardenhome.com", # your host, usually localhost
-					 port=3306,
-                    user="liam", # your username
-                    passwd="", # your password
-                    db="bible_history") # name of the data base
+conn = pymysql.connect(host="jim.dardenhome.com", port=3306, user="liam", passwd="", db="bible_history", charset="utf8");
 curs = conn.cursor();
-
-
-# for a given book.chapter.verse or book.chapter
-# reference, return the final number (chapter or verse)
-# e.g. Gen.1.1 or Exo.2 
-def getNumberFromReference(reference):
-	return reference[reference.rfind(".")+1:];
-
-
+curs.execute("TRUNCATE TABLE web_verse");
+#curs.close();
 
 def getVerses(paragraph):
 	verses = [];
@@ -42,50 +31,49 @@ def getVerses(paragraph):
 
 	return verses;
 
-			
-			
+
+def importXML():
+	tree = ET.parse("eng-web_usfx.xml");
+	rootElem = tree.getroot();
+
+	i = 0;
+	isOldTest = 'Y';
+	bookOrder = 1;
+	for book in rootElem.findall("book"):
+		i += 1;
+		if (i == 1 or i==86):
+			continue; # skip past preface and glossary 
+		if (i > 40 and i < 59): # skip apocrypha
+			continue;
+		if (i > 40):
+			isOldTest = 'N';
+			bookOrder = i - 19;
+		else:
+			isOldTest = 'Y';
+			bookOrder = i - 1;
 
 
+		currentChapter = 0;
+		inChapter = False;
+		tocs = book.findall("toc");
+		for toc in tocs:
+			if (toc.attrib["level"] == "2"):
+				currentBookName = toc.text.replace("\n", "");
+				break;
+		for elem in book.iter():
+			if (elem.tag == "c"):
+				inChapter = True;
+				currentVerse = 0;
+				currentChapter = elem.attrib["id"];
+			if (elem.tag == "ce"):
+				inChapter = False;
 
-tree = ET.parse("eng-web_usfx.xml");
-rootElem = tree.getroot();
+			if (elem.tag == "p" and inChapter):
+				for verse in getVerses(elem):
+					print(currentBookName + " " + str(currentChapter) + ":" + str(verse[0]) + " - " + verse[1]);
+					curs.execute("INSERT INTO bible_history.web_verse(book, chapter, verse, verse_text, book_order, ot) " + 
+						"VALUES ('" + currentBookName + "', " + str(currentChapter) + ", " + str(verse[0]) + ",'" + 
+							str(verse[1].replace("'", "\\'")) + "', " + str(bookOrder) + ", '" + isOldTest + "')");
 
-i = 0;
-for book in rootElem.findall("book"):
-	i += 1;
-	if (i > 39 and i < 60): # skip apacraphal
-		continue;
-	currentChapter = 0;
-	inChapter = False;
-	tocs = book.findall("toc");
-	for toc in tocs:
-		if (toc.attrib["level"] == "2"):
-			currentBookName = toc.text.replace("\n", "");
-			break;
-	for elem in book.iter():
-		if (elem.tag == "c"):
-			inChapter = True;
-			currentVerse = 0;
-			currentChapter = elem.attrib["id"];
-		if (elem.tag == "ce"):
-			inChapter = False;
-
-		if (elem.tag == "p" and inChapter):
-			for verse in getVerses(elem):
-				print(currentBookName + " " + str(currentChapter) + ":" + str(verse[0]) + " - " + verse[1]);
-			# curs.execute("INSERT INTO bible_history.web_verse(book, chapter, verse, verse_text, book_order, ot) " +
- 		# 	"VALUES ('" + currentBookName + "', " + str(currentChapter) + ", " + str(verse[0]) + ", str(verse[1]), " + str(bookOrder) + ", '" + isOldTest + "')")			
-
-			#for pelem in elem.itertext(): # dig into the chapter
-			#	print(pelem);
-			#	continue;
-			#	print(pelem.text);
-			#	if (pelem.tag == "v"):
-			#		currentVerse = pelem.attrib["id"];
-			#		print(currentBookName + " " + currentChapter + ":" + currentVerse);	
-			#		print(pelem.text);
-print(i);
-				
-
-
-
+importXML();
+quit();
