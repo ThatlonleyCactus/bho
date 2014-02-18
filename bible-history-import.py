@@ -1,114 +1,91 @@
-import xml.etree.ElementTree as ET
-import pymysql
-import sys
-import codecs
-import unicodedata
-import re
+import xml.etree.ElementTree as ET;
+import pymysql;
+import sys;
 
-
-TAG_RE = re.compile(r'<[^>]+>')
-
-
-def stripTags(text):
-	return TAG_RE.sub('', text)
-
+conn = pymysql.connect(host="jim.dardenhome.com", # your host, usually localhost
+					 port=3306,
+                    user="liam", # your username
+                    passwd="", # your password
+                    db="bible_history") # name of the data base
+curs = conn.cursor();
 
 
 # for a given book.chapter.verse or book.chapter
 # reference, return the final number (chapter or verse)
 # e.g. Gen.1.1 or Exo.2 
 def getNumberFromReference(reference):
-	referenceNumber = reference[reference.rfind(".")+1:]
-	return referenceNumber
+	return reference[reference.rfind(".")+1:];
 
 
 
-def getVerses(paragrph):
-	verses = []
+def getVerses(paragraph):
+	verses = [];
+	inVerse = False;
+	verseNumber = 0;
+	verseText = "";
 
-	verseTagIndex = 1;
-	while (verseTagIndex > 0):
-		verseTagIndex = paragraph.find('<verse sID="', verseTagIndex)
-		if (verseTagIndex == -1):
-			break
+	for elem in paragraph.iter():
+		if (elem.tag == "v"):
+			verseNumber = elem.attrib["id"];
 
-		referenceStartIndex = verseTagIndex + 12
-		referenceEndIndex = paragraph.find('"', referenceStartIndex)
+		if (elem.tail != None):
+			verseText += elem.tail.replace("\t", '').replace("\n", '');
 
-		reference = paragraph[referenceStartIndex:referenceEndIndex]
-		print ("Verse=" + getNumberFromReference(reference))
-		verseTextStartIndex = paragraph.find('/>', verseTagIndex) + 2
+		if (elem.tag == "wj"):
+			verseText += elem.text.replace("\t", '').replace("\n", '');
 
-		verseTextEndIndex = paragraph.find('<verse sID="', verseTextStartIndex)
-
-		if (verseTextEndIndex == -1):
-			verseText = paragraph[verseTextStartIndex:]
-		else: 
-			verseText = stripTags(paragraph[verseTextStartIndex:verseTextEndIndex])
-
-		print (verseText)
-
-		verseTagIndex += 1
-	return ""
+		if (elem.tag == "ve"):
+			verses.append([verseNumber, verseText]);
+			verseText = "";
+			verseNumber = 0;
 
 
-conn = pymysql.connect(host="jim.dardenhome.com", # your host, usually localhost
-					 port=3306,
-                     user="liam", # your username
-                     passwd="", # your password
-                     db="bible_history") # name of the data base
-curs = conn.cursor()
-fp = open("web.osis.xml","r")
-xml=fp.read()
-rootElem = ET.fromstring(xml)
-bookGroups = rootElem.findall(".//*[@type='bookGroup']")
-groupNum = 0;
-for bookGroup in bookGroups:
-	groupNum += 1;
-	if (groupNum == 2):
-		continue
-	if (groupNum == 1):
-		isOldTest = 'Y'
-	else:
-		isOldTest = 'N'
+	return verses;
 
-	books = bookGroup.findall(".//*[@type='book']")
-	bookOrder = 0;
-	for book in books:
-		try:
-			currentBookName = book.find("{http://www.bibletechnologies.net/2003/OSIS/namespace}title").attrib.get("short")
-			currentChapter = book.find("{http://www.bibletechnologies.net/2003/OSIS/namespace}chapter").attrib.get("sID")
-		except:
-			print("oops")
-			continue
-
-		paragraphs = book.findall("{http://www.bibletechnologies.net/2003/OSIS/namespace}p")
-		for paragraph in paragraphs:
-			print(ET.tostring(paragraph))
-			quit()
-			# for element in paragraph:
-			# 	if element.tag == "{http://www.bibletechnologies.net/2003/OSIS/namespace}verse":
-			# 		# <verse sID="Gen.1.1" osisID="Gen.1.1" />
-			# 		# In the beginning <milestone type="x-noteStartAnchor" />God
-			# 		# <note type="translation">The Hebrew word rendered “God” is “Elohim.” After “God,” 
-			# 		# the Hebrew has the two letters “Aleph Tav” (the first and last letters of the 
-			# 		# Hebrew alphabet) as a grammatical marker.</note> created the heavens and the earth.
-			# 		# <verse eID="Gen.1.1" />
-
-			# 		# see if this is the start of the verse or end
-			# 		try:
-			# 			newVerse = element.attrib.get("sID")
-			# 		except:
-			# 			# if there is no sID then this is the eID and we can ignore it
-			# 			continue
-
-			# 		# we just want the text 
-			# 		print(str(currentBookName) + ":" + str(currentChapter) + ":" + str(currentVerse))
+			
+			
 
 
-	# 			currentVerse = verse.attrib["id"]
-	# 			currentVerseText = childElem.text
-	# 			print (currentBookName + ":" + currentChapter + ":" + currentVerse)
-	# 			curs.execute("INSERT INTO bible_history.web_verse(book, chapter, verse, verse_text, book_order, ot) " +
-	# 				"VALUES ('" + currentBookName + "', " + str(currentChapter) + ", " + str(currentVerse) + ", 'dummy', " + str(bookOrder) + ", '" + isOldTest + "')")
-	# 			break
+
+tree = ET.parse("eng-web_usfx.xml");
+rootElem = tree.getroot();
+
+i = 0;
+for book in rootElem.findall("book"):
+	i += 1;
+	if (i > 39 and i < 60): # skip apacraphal
+		continue;
+	currentChapter = 0;
+	inChapter = False;
+	tocs = book.findall("toc");
+	for toc in tocs:
+		if (toc.attrib["level"] == "2"):
+			currentBookName = toc.text.replace("\n", "");
+			break;
+	for elem in book.iter():
+		if (elem.tag == "c"):
+			inChapter = True;
+			currentVerse = 0;
+			currentChapter = elem.attrib["id"];
+		if (elem.tag == "ce"):
+			inChapter = False;
+
+		if (elem.tag == "p" and inChapter):
+			for verse in getVerses(elem):
+				print(currentBookName + " " + str(currentChapter) + ":" + str(verse[0]) + " - " + verse[1]);
+			# curs.execute("INSERT INTO bible_history.web_verse(book, chapter, verse, verse_text, book_order, ot) " +
+ 		# 	"VALUES ('" + currentBookName + "', " + str(currentChapter) + ", " + str(verse[0]) + ", str(verse[1]), " + str(bookOrder) + ", '" + isOldTest + "')")			
+
+			#for pelem in elem.itertext(): # dig into the chapter
+			#	print(pelem);
+			#	continue;
+			#	print(pelem.text);
+			#	if (pelem.tag == "v"):
+			#		currentVerse = pelem.attrib["id"];
+			#		print(currentBookName + " " + currentChapter + ":" + currentVerse);	
+			#		print(pelem.text);
+print(i);
+				
+
+
+
