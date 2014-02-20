@@ -7,26 +7,45 @@ curs = conn.cursor();
 curs.execute("TRUNCATE TABLE web_verse");
 #curs.close();
 
-def getVerses(chapter):
+
+
+def getVerses(book):
+	inVerse = False;
 	verses = [];
 	inVerse = False;
 	verseNumber = 0;
 	verseText = "";
+	chapterNumber = 0;
 
-	for elem in chapter.iter():
-		if (elem.tag == "v"):
-			verseNumber = elem.attrib["id"];
+	for child in book.iter():
+		if (child.tag == "c"):
+			chapterNumber = child.attrib["id"];
 
-		if (elem.tail != None):
-			verseText += elem.tail.replace("\t", '').replace("\n", '');
+		if (child.tag == "v"):
+			inVerse = True;
+			verseNumber = child.attrib["id"];
 
-		if (elem.tag == "wj"):
-			verseText += elem.text.replace("\t", '').replace("\n", '');
+		if (inVerse):
+			if (child.tag == "f"):
+				continue;
 
-		if (elem.tag == "ve"):
-			verses.append([verseNumber, verseText]);
+			if (child.tail != None):
+				verseText += child.tail.replace("\t", '').replace("\n", '');
+				continue;
+
+			if (child.text != None):
+				verseText += child.text.replace("\t", '').replace("\n", '');
+				continue;
+
+		if (child.tag == "ve"):
+			inVerse = False;
+			tup = [chapterNumber, verseNumber, verseText];
+			verses.append(tup);
+
 			verseText = "";
 			verseNumber = 0;
+			continue;
+
 
 
 	return verses;
@@ -61,16 +80,11 @@ def importXML():
 				currentBookName = toc.text.replace("\n", "");
 				break;
 
-		for elem in book.iter():
-			if (elem.tag == "c"):
-				# inChapter = True;
-				# currentVerse = 0;
-				currentChapter = elem.attrib["id"];
-				for verse in getVerses(elem):
-					print(currentBookName + " " + str(currentChapter) + ":" + str(verse[0]) + " - " + verse[1]);
-					curs.execute("INSERT INTO bible_history.web_verse(book, chapter, verse, verse_text, book_order, ot) " + 
-						"VALUES ('" + currentBookName + "', " + str(currentChapter) + ", " + str(verse[0]) + ",'" + 
-							str(verse[1].replace("'", "\\'")) + "', " + str(bookOrder) + ", '" + isOldTest + "')");
+		for verse in getVerses(book):
+			print(currentBookName + " " + str(verse[0]) + ":" + str(verse[1]) + " - " + verse[2]);
+			curs.execute("INSERT INTO bible_history.web_verse(book, chapter, verse, verse_text, book_order, ot) " + 
+				"VALUES ('" + currentBookName + "', " + str(verse[0]) + ", " + str(verse[1]) + ",'" + 
+					str(verse[2].replace("'", "\\'")) + "', " + str(bookOrder) + ", '" + isOldTest + "')");
 
 			# if (elem.tag == "ce"):
 			# 	inChapter = False;
