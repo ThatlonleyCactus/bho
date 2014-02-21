@@ -1,8 +1,10 @@
 import xml.etree.ElementTree as ET;
 import pymysql;
 import sys;
+import codecs;
 
 conn = pymysql.connect(host="jim.dardenhome.com", port=3306, user="liam", passwd="", db="bible_history", charset="utf8");
+conn.charset="utf8";
 curs = conn.cursor();
 curs.execute("TRUNCATE TABLE web_verse");
 #curs.close();
@@ -12,6 +14,7 @@ curs.execute("TRUNCATE TABLE web_verse");
 def getVerses(book):
 	inVerse = False;
 	verses = [];
+	inVerse = False;
 	inVerse = False;
 	verseNumber = 0;
 	verseText = "";
@@ -26,16 +29,15 @@ def getVerses(book):
 			verseNumber = child.attrib["id"];
 
 		if (inVerse):
-			if (child.tag == "f"):
-				continue;
+			if (child.text != None):
+				if (child.tag == "f"):
+					verseText += " [" + child.text.replace("\t", '').replace("\n", '')  + "] ";
+				else:
+					verseText += child.text.replace("\t", '').replace("\n", '');
 
 			if (child.tail != None):
 				verseText += child.tail.replace("\t", '').replace("\n", '');
-				continue;
 
-			if (child.text != None):
-				verseText += child.text.replace("\t", '').replace("\n", '');
-				continue;
 
 		if (child.tag == "ve"):
 			inVerse = False;
