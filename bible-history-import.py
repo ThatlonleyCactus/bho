@@ -7,7 +7,6 @@ conn = pymysql.connect(host="jim.dardenhome.com", port=3306, user="liam", passwd
 conn.charset="utf8";
 curs = conn.cursor();
 curs.execute("TRUNCATE TABLE web_verse");
-#curs.close();
 
 
 
@@ -31,7 +30,7 @@ def getVerses(book):
 		if (inVerse):
 			if (child.text != None):
 				if (child.tag == "f"):
-					verseText += " [" + child.text.replace("\t", '').replace("\n", '')  + "] ";
+					verseText += " <note>" + child.text.replace("\t", '').replace("\n", '')  + "</note> ";
 				else:
 					verseText += child.text.replace("\t", '').replace("\n", '');
 
@@ -87,16 +86,6 @@ def importXML():
 			curs.execute("INSERT INTO bible_history.web_verse(book, chapter, verse, verse_text, book_order, ot) " + 
 				"VALUES ('" + currentBookName + "', " + str(verse[0]) + ", " + str(verse[1]) + ",'" + 
 					str(verse[2].replace("'", "\\'")) + "', " + str(bookOrder) + ", '" + isOldTest + "')");
-
-			# if (elem.tag == "ce"):
-			# 	inChapter = False;
-
-			# if (elem.tag == "p" and inChapter):
-			# 	for verse in getVerses(elem):
-			# 		print(currentBookName + " " + str(currentChapter) + ":" + str(verse[0]) + " - " + verse[1]);
-			# 		curs.execute("INSERT INTO bible_history.web_verse(book, chapter, verse, verse_text, book_order, ot) " + 
-			# 			"VALUES ('" + currentBookName + "', " + str(currentChapter) + ", " + str(verse[0]) + ",'" + 
-			# 				str(verse[1].replace("'", "\\'")) + "', " + str(bookOrder) + ", '" + isOldTest + "')");
 
 importXML();
 quit();
