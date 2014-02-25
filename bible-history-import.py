@@ -9,6 +9,14 @@ curs = conn.cursor();
 curs.execute("TRUNCATE TABLE web_verse");
 
 
+def createToolTip(verseText, hint):
+	# given a string like " sldkjfa;d adsfal;jdfa; asdflkas;df a God"
+	
+	startIndex = verseText.rfind(' ');
+	token = verseText[startIndex:];
+	verseText = verseText[0:startIndex];
+	return [verseText, " <a  title='" + hint + "' class=\"tooltip\">" + token.strip() + "</a>"];
+
 
 def getVerses(book):
 	inVerse = False;
@@ -30,7 +38,10 @@ def getVerses(book):
 		if (inVerse):
 			if (child.text != None):
 				if (child.tag == "f"):
-					verseText += " <note>" + child.text.replace("\t", '').replace("\n", '')  + "</note> ";
+					note = child.text.replace("\t", '').replace("\n", '');
+					tup = createToolTip(verseText, note);
+					verseText = tup[0] + tup[1];
+					#verseText += createToolTip(verseText, note);
 				else:
 					verseText += child.text.replace("\t", '').replace("\n", '');
 
